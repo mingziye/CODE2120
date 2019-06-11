@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     ## ADD YOUR APPS HERE #######
     'example',
+    'mindydied',
 ]
 
 MIDDLEWARE = [
