@@ -1,7 +1,7 @@
 """mysite URL Configuration
 
 The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/2.2/topics/http/urls/
+     
 Examples:
 Function views
     1. Add an import:  from my_app import views
@@ -19,6 +19,6 @@ from django.urls import include, path, re_path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path(r'example/', include('example.urls')),
-    path(r'MindyYe/', include('mindydied.urls')),
+    path(r'mindy/', include('food.urls')),
     ######DID MINDY DIED TODAY?
 ]
