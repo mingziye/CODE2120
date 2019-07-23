@@ -1,10 +1,16 @@
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-
+from django.core.files.temp import NamedTemporaryFile
+from django.core.files import File
+from urllib3 import PoolManager
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 import json
-import urllib3
+import urllib
+import requests
 from PIL import Image
+from colorthief import ColorThief
 import cv2
 from sklearn.cluster import KMeans
 from .models import *
@@ -100,47 +106,110 @@ def picker(request):
 	else:
 		return HttpResponse("Only return post request")
 
-def DominantColors(request):
+class DominantColors:
+
+	CLUSTERS = None
+	IMAGE = None
+	COLORS = None
+	LABELS = None
+	
+	def __init__(self, image, clusters=3):
+		self.CLUSTERS = clusters
+		self.IMAGE = image
+		
+	def dominantColors(self):
+	
+		#read image
+		img = cv2.imread(self.IMAGE)
+		
+		#convert to rgb from bgr
+		img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+				
+		#reshaping to a list of pixels
+		img = img.reshape((img.shape[0] * img.shape[1], 3))
+		
+		#save image after operations
+		self.IMAGE = img
+		
+		#using k-means to cluster pixels
+		kmeans = KMeans(n_clusters = self.CLUSTERS)
+		kmeans.fit(img)
+		
+		#the cluster centers are our dominant colors.
+		self.COLORS = kmeans.cluster_centers_
+		
+		#save labels
+		self.LABELS = kmeans.labels_
+		
+		#returning after converting to integer from float
+		return self.COLORS.astype(int)
+
+
+@csrf_exempt
+def domcol(request):
+			
+	log = []
+	jsob = {"clusters": 3,"path": 0}
+	if request.method == "POST":
+		try: 
+			data = request.POST["data"]
+			print(data)
+			received = json.loads(str(data))
+			jsob.update(received)
+			path = jsob.get("path")
+			clusters = int(jsob.get("clusters"))
+			dc = DominantColors(path, clusters) 
+			colors = dc.dominantColors().tolist()
+			print(colors)
+			print(type(colors))
+
 
 			
-    log = []
-    jsob = {"clusters": 3,"path": 0}
-    if request.method == "POST":
-        try: 
-                data = request.POST["data"]
-                received = json.loads(str(data))
-                jsob.update(received)
+			results = {"colors":colors}
 
-                im  = cv2.imread(jsob.get("path"))
-                im  = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-                #reshape the image to a list of pixels.
-                im = im.reshape((im.shape[0] * im.shape[1], 3))
-                
-
-                kmeans = KMeans(n_clusters = int(jsob.get("clusters")))
-                kmeans.fit(im)
-                
-                COLORS = kmeans.cluster_centers_
-                LABELS = kmeans.labels_
-                clusters = int(jsob.get("clusters"))
-                dc = DominantColors(im, clusters) 
-                colors = dc.dominantColors()
-
-                red = int(colors[0])
-                green = int(colors[1])
-                blue = int(colors[2])
-                results = {"r":red,"g":green,"b":blue}
-
-                return JsonResponse(results)
-        except Exception as e:
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            other = sys.exc_info()[0].__name__
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            errorType = str(exc_type)
-            return JsonResponse({"isError": True, "error":str(e), "errorType":errorType, "function":fname, "line":exc_tb.tb_lineno, "log":log})
-    else:
-    	 return HttpResponse("see, you can't make any change to gh, so silly")
-
-        
+			return JsonResponse(results)
+		except Exception as e:
+			exc_type, exc_obj, exc_tb = sys.exc_info()
+			other = sys.exc_info()[0].__name__
+			fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+			errorType = str(exc_type)
+			return JsonResponse({"isError": True, "error":str(e), "errorType":errorType, "function":fname, "line":exc_tb.tb_lineno, "log":log})
+	else:
+		 	return HttpResponse("lkafewa;gjkreagfne")
 
 
+
+
+@csrf_exempt
+def domcoll(request,var_c):
+			
+	log = []
+	jsob = {"clusters": 5,"path": 0}
+	if request.method == "POST":
+		try: 
+
+			data = request.POST["data"]
+			print(data)
+			received = json.loads(str(data))
+			jsob.update(received)
+			path = jsob.get("path")
+			clusters = jsob.get("clusters")
+			tmp_file = 'tmp.jpg'
+			urllib.request.urlretrieve(path,filename=tmp_file)
+			color_thief = ColorThief(tmp_file)
+			dominant_color = color_thief.get_color(quality=1) #one colour
+			palette = color_thief.get_palette(color_count=int(clusters)) #multiple
+			print(dominant_color)
+			print(palette)
+
+			results = {"colors":palette}
+
+			return JsonResponse(results)
+		except Exception as e:
+			exc_type, exc_obj, exc_tb = sys.exc_info()
+			other = sys.exc_info()[0].__name__
+			fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+			errorType = str(exc_type)
+			return JsonResponse({"isError": True, "error":str(e), "errorType":errorType, "function":fname, "line":exc_tb.tb_lineno, "log":log})
+	else:
+		 	return HttpResponse("やっとできた、めっちゃ信じられない")

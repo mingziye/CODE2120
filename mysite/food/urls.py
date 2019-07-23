@@ -8,6 +8,7 @@ urlpatterns = [
 	path(r'fib/', views.fib),
 	path(r'multification/', views.multification),
 	path(r'picker/', views.picker),
-	path(r'DominantColors/', views.DominantColors),
-]
+	path(r'DominantColors/', views.domcol),
+	path(r'DominantColors/<int:var_c>/', views.domcoll),
 
+]
