@@ -3,7 +3,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.core.files.temp import NamedTemporaryFile
 from django.core.files import File
-from urllib3 import PoolManager
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import json
